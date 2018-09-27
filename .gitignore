@@ -1,5 +1,5 @@
 
-# Created by https://www.gitignore.io/api/c++,linux,macos,windows
+# Created by https://www.gitignore.io/api/c++,linux,macos,windows,visualstudiocode
 
 ### C++ ###
 # Prerequisites
@@ -103,5 +103,11 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
-# End of https://www.gitignore.io/api/c++,linux,macos,windows
+# End of https://www.gitignore.io/api/c++,linux,macos,windows,visualstudiocode
