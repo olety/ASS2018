@@ -1,6 +1,7 @@
 # Advanced System Software course 2018
 
 Current project plan: Create a device that will post your current mood to twitter. (+ maybe some other stuff)
+
 Bot details: f1463617@nwytg.net / thisisapassword123
 
 # Links
