@@ -11,3 +11,4 @@ Bot details: f1463617@nwytg.net / thisisapassword123
 * [m5stack](http://m5stack.com/)
 * [PlatformIO](https://platformio.org/)
 * [Twitter dev api](https://developer.twitter.com/en/use-cases/publish-and-curate)
+* [How to do POST requests using the twitter api](https://developer.twitter.com/en/docs/tweets/post-and-engage/api-reference/post-statuses-update)
