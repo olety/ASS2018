@@ -12,3 +12,4 @@ Bot details: f1463617@nwytg.net / thisisapassword123
 * [PlatformIO](https://platformio.org/)
 * [Twitter dev api](https://developer.twitter.com/en/use-cases/publish-and-curate)
 * [How to do POST requests using the twitter api](https://developer.twitter.com/en/docs/tweets/post-and-engage/api-reference/post-statuses-update)
+* [How to install the M5Stack library](https://m5stack.readthedocs.io/en/latest/get-started/m5stack_core_get_started_Arduino_MacOS.html)
