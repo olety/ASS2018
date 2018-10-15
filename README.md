@@ -3,11 +3,12 @@
 ## Project: [Tamagotchi](https://en.wikipedia.org/wiki/Tamagotchi)-like pet app
 
 Current roles/responsibilities:
-Biyuan Wang - FSM
-Oleksii Kyrylchuk - FSM
-Robin Salen - States
-Ruopeng Xu - UI
-Tarek Aoukar - UI
+
+- Biyuan Wang - FSM
+- Oleksii Kyrylchuk - FSM
+- Robin Salen - States
+- Ruopeng Xu - UI
+- Tarek Aoukar - UI
 
 # Links
 
