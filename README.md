@@ -1,8 +1,13 @@
 # Advanced System Software course 2018
 
-Current project plan: Create a device that will post your current mood to twitter. (+ maybe some other stuff)
+## Project: [Tamagotchi](https://en.wikipedia.org/wiki/Tamagotchi)-like pet app
 
-Bot details: f1463617@nwytg.net / thisisapassword123
+Current roles/responsibilities:
+Biyuan Wang - FSM
+Oleksii Kyrylchuk - FSM
+Robin Salen - States
+Ruopeng Xu - UI
+Tarek Aoukar - UI
 
 # Links
 
