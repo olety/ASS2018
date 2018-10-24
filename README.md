@@ -6,7 +6,7 @@ Current roles/responsibilities:
 
 - Biyuan Wang - FSM
 - Oleksii Kyrylchuk - FSM
-- Robin Salen - States
+- ~Robin Salen - States~
 - Ruopeng Xu - UI
 - Tarek Aoukar - UI
 
