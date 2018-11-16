@@ -1,0 +1,19 @@
+doctype html  
+html(lang='en')  
+ head
+   title Adv.Sys.Soft
+   link(href='https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css', rel='stylesheet')
+ body
+    div.row.text-center.col-12
+        .col-4
+        .col-4
+            h1.mt-4 HIGH SCORES
+            table.col-12.table.table-hover.mt-4
+                thead.thead-light
+                    tr
+                        th name
+                        th score
+                each row, idx in data
+                    tr(class= idx==0 ? 'table-primary' : idx==data.length-1 ? 'table-danger' : '')
+                        td #{row.name}
+                        td #{row.score}

@@ -111,3 +111,5 @@ $RECYCLE.BIN/
 !.vscode/extensions.json
 
 # End of https://www.gitignore.io/api/c++,linux,macos,windows,visualstudiocode
+
+node_modules
