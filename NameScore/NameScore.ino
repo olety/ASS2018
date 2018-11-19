@@ -1,5 +1,7 @@
 #include <M5Stack.h>
-#include <stdlib.h>
+#include <stdio.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
 
 String NamePart1[] = {
   "Bland",
@@ -31,10 +33,35 @@ String NamePart2[] = {
 int NameIndex[2];
 unsigned int score = 10;
 
+const char* WIFI_SSID = "Tako";
+const char* WIFI_PASS =  "12345678";
+
+const char *SERVER_ADDRESS = "192.168.137.1";
+const char *SERVER_REQUEST = "{\"name\":\"%s %s\",\"score\":\"%d\"}";
+char* send_req = "";
+HTTPClient http;
+
 void setup() {
   M5.begin();
   M5.Lcd.setBrightness(255);
   M5.Lcd.fillScreen(0xffff);
+
+
+  // open serial connection to monitor the connection result
+  Serial.begin(115200);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  // while the wifi is connectiong...
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    M5.Lcd.println("Connecting to WiFi..");
+  }
+
+  // successful connection
+  M5.Lcd.println("Connected to the WiFi..");
+  M5.Lcd.println(WiFi.localIP());
+
+  
 }
 
 
@@ -89,6 +116,18 @@ void displayThanks(){
   M5.Lcd.setTextColor(0x0000);
   M5.Lcd.print("Thank you for playing");
   }
+
+void sendScore(){
+  
+  // Send a post request
+  M5.Lcd.println("Connecting to the server");
+  http.begin(SERVER_ADDRESS, 5656, "/" );
+  http.addHeader("Content-Type", "application/json" );
+  sprintf(send_req, SERVER_REQUEST, NamePart1[NameIndex[0]], NamePart2[NameIndex[1]], score);
+  http.POST((uint8_t*)send_req, strlen(send_req));
+  M5.Lcd.println("post req sent");
+
+}
 
 void loop() {
   if (M5.BtnB.wasPressed())
