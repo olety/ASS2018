@@ -43,9 +43,8 @@ void displayShuffleName(){
   M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(0x0000);
 // shuffle the name
-  srand( (unsigned)time( NULL ) );
-  int NameIndex1 = rand() % 10;
-  int NameIndex2 =rand() % 10;
+  int NameIndex1 = random(0,9);
+  int NameIndex2 =random(0,9);
   NameIndex[0]= NameIndex1;
   NameIndex[1]= NameIndex2;
 //  M5.Lcd.printf("%d""%d",NameIndex1,NameIndex2);
