@@ -38,7 +38,7 @@ const char* WIFI_PASS =  "12345678";
 
 const char *SERVER_ADDRESS = "192.168.137.1";
 const char *SERVER_REQUEST = "{\"name\":\"%s %s\",\"score\":\"%d\"}";
-char* send_req = "";
+char send_req[200];
 HTTPClient http;
 
 void setup() {
@@ -114,7 +114,7 @@ void displayThanks(){
   M5.Lcd.fillScreen(0xffff);
   M5.Lcd.setCursor(20,115);
   M5.Lcd.setTextColor(0x0000);
-  M5.Lcd.print("Thank you for playing");
+  M5.Lcd.println("Thank you for playing");
   }
 
 void sendScore(){
@@ -122,8 +122,12 @@ void sendScore(){
   // Send a post request
   M5.Lcd.println("Connecting to the server");
   http.begin(SERVER_ADDRESS, 5656, "/" );
+  M5.Lcd.println("successfully connect to server");
   http.addHeader("Content-Type", "application/json" );
-  sprintf(send_req, SERVER_REQUEST, NamePart1[NameIndex[0]], NamePart2[NameIndex[1]], score);
+  M5.Lcd.println("successfully added header");
+  sprintf(send_req, SERVER_REQUEST, NamePart1[NameIndex[0]].c_str(), NamePart2[NameIndex[1]].c_str(), score);
+  M5.Lcd.println("successfully sprintfed");
+  M5.Lcd.println(send_req);
   http.POST((uint8_t*)send_req, strlen(send_req));
   M5.Lcd.println("post req sent");
 
@@ -136,6 +140,9 @@ void loop() {
       displayShuffleName();
       displayNameScore();
       displayThanks();
+      sendScore();
+      delay(10000);
+      
       
     }
     M5.update();
