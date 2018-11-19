@@ -1,4 +1,7 @@
 #include <M5Stack.h>
+#include <stdio.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
 
 //Graphics
 #define living1 spider_living1_map
@@ -12,7 +15,6 @@
 #define dead1 spider_dead1_map
 #define dead2 spider_dead2_map
 
-
 #define livingArray1 extern unsigned char
 #define livingArray2 extern unsigned char
 #define playingArray1 extern unsigned char
@@ -23,18 +25,6 @@
 #define sleepingArray2 extern unsigned char
 #define deadArray1 extern unsigned char
 #define deadArray2 extern unsigned char
-
-livingArray1 living1[];
-livingArray2 living2[];
-playingArray1 playing1[];
-playingArray2 playing2[];
-eatingArray1 eating1[];
-eatingArray2 eating2[];
-sleepingArray1 sleeping1[];
-sleepingArray2 sleeping2[];
-deadArray1 dead1[];
-deadArray2 dead2[];
-
 
 // Game settings
 #define STARTING_SCORE 999995
@@ -58,7 +48,20 @@ deadArray2 dead2[];
 #define STATE_DEATH 4
 #define STATE_WIN 5
 
+// Images
+livingArray1 living1[];
+livingArray2 living2[];
+playingArray1 playing1[];
+playingArray2 playing2[];
+eatingArray1 eating1[];
+eatingArray2 eating2[];
+sleepingArray1 sleeping1[];
+sleepingArray2 sleeping2[];
+deadArray1 dead1[];
+deadArray2 dead2[];
 
+
+// Game variables
 unsigned int score = STARTING_SCORE;
 int temp = 0;
 int sleep_pts = STARTING_SLEEP_PTS;
@@ -67,8 +70,21 @@ int hunger_pts = STARTING_HUNGER_PTS;
 int messageIndex = MSG_IDLE;
 int currentState = STATE_IDLE;
 
+int NameIndex[2];
+
+// Wi-fi stuff
+const char* WIFI_SSID = "Tako";
+const char* WIFI_PASS =  "12345678";
+
+const char *SERVER_ADDRESS = "192.168.137.1";
+const char *SERVER_REQUEST = "{\"name\":\"%s %s\",\"score\":\"%d\"}";
+char send_req[200];
+HTTPClient http;
+
+// Tasks
 TaskHandle_t idleHandle;
 
+// Display messages
 String message[] = {
   "pet is waiting",
   "pet is sleeping",
@@ -78,7 +94,101 @@ String message[] = {
   "YOU WON"
 };
 
+String NamePart1[] = {
+  "Bland",
+  "Clever",
+  "Childish",
+  "Energetic",
+  "Frank",
+  "Gentle",
+  "Lazy",
+  "Noisy",
+  "Romantic",
+  "Sensitive"
+};
 
+String NamePart2[] = {
+  "Egg",
+  "Kiwi",
+  "Banana",
+  "Potato",
+  "Tomato",
+  "Ginger",
+  "Mushroom",
+  "Peach",
+  "Grape",
+  "Cucumber"
+  
+};
+
+
+
+void displayShuffleName(){
+//  set the text
+  M5.Lcd.setTextSize(2);
+  M5.Lcd.setTextColor(0x0000);
+// shuffle the name
+  int NameIndex1 = random(0,9);
+  int NameIndex2 =random(0,9);
+  NameIndex[0]= NameIndex1;
+  NameIndex[1]= NameIndex2;
+//  M5.Lcd.printf("%d""%d",NameIndex1,NameIndex2);
+//  delay(800000000);
+  
+//  show your name is shuffle....
+  M5.Lcd.setCursor(10,115);
+  M5.Lcd.printf("%s","your name is shuffling..");
+  delay(3000);
+  M5.Lcd.fillScreen(0xffff);
+
+//show the name
+  M5.Lcd.setCursor(10,90);
+  M5.Lcd.println("your name is:");
+  M5.Lcd.setCursor(100,120);
+  M5.Lcd.print(NamePart1[NameIndex[0]]);
+  M5.Lcd.print(" ");
+  M5.Lcd.print(NamePart2[NameIndex[1]]);
+  delay(3000);
+  
+  }
+
+void displayNameScore(){
+  M5.Lcd.fillScreen(0xffff);
+  M5.Lcd.fillRect(50,30,220,180,0x0000);
+  M5.Lcd.setCursor(60,50);
+  M5.Lcd.setTextColor(0xffff);
+  M5.Lcd.print(NamePart1[NameIndex[0]]);
+  M5.Lcd.print(" ");
+  M5.Lcd.print(NamePart2[NameIndex[1]]);
+  M5.Lcd.setCursor(75,120);
+  M5.Lcd.print("You got");
+  M5.Lcd.setCursor(85,140);
+  M5.Lcd.printf("%d",score);
+  delay(5000);
+  }
+
+void displayThanks(){
+  M5.Lcd.fillScreen(0xffff);
+  M5.Lcd.setCursor(20,115);
+  M5.Lcd.setTextColor(0x0000);
+  M5.Lcd.println("Thank you for playing");
+  }
+
+void sendScore(){
+  
+  // Send a post request
+//  M5.Lcd.println("Connecting to the server");
+  http.begin(SERVER_ADDRESS, 5656, "/" );
+//  M5.Lcd.println("successfully connect to server");
+  http.addHeader("Content-Type", "application/json" );
+//  M5.Lcd.println("successfully added header");
+  sprintf(send_req, SERVER_REQUEST, NamePart1[NameIndex[0]].c_str(), NamePart2[NameIndex[1]].c_str(), score);
+//  M5.Lcd.println("successfully sprintfed");
+//  M5.Lcd.println(send_req);
+  http.POST((uint8_t*)send_req, strlen(send_req));
+//  M5.Lcd.println("post req sent");
+
+}
 
 void displayTemp(){
   M5.Lcd.fillRect(235, 0, 100, 20, 0);
@@ -191,18 +301,26 @@ void updateScore(void *pvParameters) {
 void displayFinalScreen() {
 }
 
+void processScore(){
+  displayShuffleName();
+  displayNameScore();
+  displayThanks();
+  sendScore();
+}
+
 void lose() {
   // TODO(UI ppl): show the resume button and the score 
-  
   messageIndex = MSG_DEATH;
   currentState = STATE_DEATH;
+  processScore();
 }
 
 void win() {
   // TODO(UI ppl): show the resume button and the score 
   messageIndex = MSG_WIN;
-  currentState = STATE_WIN;
-  updateUI();
+  currentState = STATE_WIN; 
+  processScore();
+  
 }
 
 void checkDeath() {
@@ -223,6 +341,9 @@ void checkDeath() {
 }
 
 void reset_game() {
+  M5.Lcd.clear();
+  M5.Lcd.setTextColor(0x0000);
+  M5.Lcd.println("RESETTING THE GAME");
   score = STARTING_SCORE;
   sleep_pts = STARTING_SLEEP_PTS;
   happiness_pts = STARTING_HAPPINESS_PTS;
@@ -288,7 +409,7 @@ void processEvent(void *pvParameters) {
   // We should also pause the updatePts activity during the event
   for (;;) {
     if (currentState == STATE_DEATH || currentState == STATE_WIN) {
-      if (M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed()) {
+      if (/*M5.BtnA.wasPressed() || */M5.BtnB.wasPressed()/* || M5.BtnC.wasPressed()*/) {
         reset_game();
       } 
     } else {
@@ -346,6 +467,10 @@ void animateIdle(void *pvParameters) {
 }
   
 void updatePts() {
+  // Check whether we won
+  if (score > 999999) {
+    win();
+  }
   // Every activity's points go down by 1 every second
   if (currentState == STATE_IDLE) {
     sleep_pts = sleep_pts - (int) 1;
@@ -361,6 +486,24 @@ void setup(){
   // Initialize the M5Stack object
   M5.begin();
   M5.Lcd.clear();
+
+  // Wi-Fi setup start
+  // open serial connection to monitor the connection result
+  Serial.begin(115200);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  // while the wifi is connectiong...
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    M5.Lcd.println("Connecting to WiFi..");
+  }
+
+  // successful connection
+  M5.Lcd.println("Connected to the WiFi..");
+  M5.Lcd.println(WiFi.localIP());
+  M5.Lcd.clear();
+  // Wi-fi setup end
+  
   // Task that updates the score every 5 seconds
   xTaskCreatePinnedToCore (
       updateScore,
