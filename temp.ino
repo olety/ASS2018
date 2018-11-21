@@ -21,7 +21,7 @@ void loop() {
     {
       M5.Lcd.print("Temperature is %d. It's too high", t);
     }
-    else if 
+    else if (t < 18) 
     {
       M5.Lcd.print("Temperature is %d. It's too low", t);
     }
