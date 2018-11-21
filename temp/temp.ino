@@ -1,5 +1,5 @@
 #include <M5Stack.h>
-#include "utility/DHT12.h"
+#include "DHT12.h"
 #include <Wire.h>
 
 DHT12 dht12;
@@ -19,11 +19,11 @@ void loop() {
   {
     if (t > 27)
     {
-      M5.Lcd.print("Temperature is %d. It's too high", t);
+      M5.Lcd.printf("Temperature is %d. It's too high", t);
     }
     else if (t < 18) 
     {
-      M5.Lcd.print("Temperature is %d. It's too low", t);
+      M5.Lcd.printf("Temperature is %d. It's too low", t);
     }
     old_t = t;
     M5.update();
