@@ -128,14 +128,17 @@ String NamePart2[] = {
 
 
 void displayShuffleName(){
+  int NameIndex1 = random(0,9);
+  int NameIndex2 = random(0,9);
+  NameIndex[0] = NameIndex1;
+  NameIndex[1] = NameIndex2;
+
+//  M5.Lcd.clear();
+//  M5.Lcd.fillScreen(FillColor);
   M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(DefaultTextColor);
-  int NameIndex1 = random(0,9);
-  int NameIndex2 =random(0,9);
-  NameIndex[0]= NameIndex1;
-  NameIndex[1]= NameIndex2;
-
   M5.Lcd.setCursor(10,190);
+//  M5.Lcd.fillRect(55, 220, 50, 20, FillColor);
   M5.Lcd.printf("%s","your name is shuffling..");
   delay(2000);
   M5.Lcd.fillScreen(FillColor);
@@ -163,9 +166,11 @@ void displayNameScore(){
   M5.Lcd.setCursor(85,210);
   M5.Lcd.printf("%d",score);
   delay(5000);
+  
+  M5.Lcd.clear();
   M5.Lcd.fillScreen(FillColor);
-  M5.Lcd.setCursor(20,190);
   M5.Lcd.setTextColor(DefaultTextColor);
+  M5.Lcd.setCursor(20,190);
   M5.Lcd.println("Your score is uploaded");
   delay(2000);
   }
@@ -266,11 +271,13 @@ void displayStats(){
 }
 
 void updateUI(){
-  displayTemp();
-  displayMessage();
-  displayScore();
-  displayFunctions();
-  displayStats();
+  if (currentState != STATE_DEATH || currentState != STATE_WIN) {
+    displayTemp();
+    displayMessage();
+    displayScore();
+    displayFunctions();
+    displayStats();
+  }
 }
 
 void updateScore(void *pvParameters) {
@@ -301,9 +308,6 @@ void updateScore(void *pvParameters) {
     
     delay(5000);
   }
-}
-
-void displayFinalScreen() {
 }
 
 void processScore(){
