@@ -27,9 +27,10 @@
 #define deadArray2 extern unsigned char
 
 // Game settings
-#define STARTING_SCORE 999995
+#define STARTING_SCORE 0
+#define WINNING_SCORE 100
 #define STARTING_SLEEP_PTS 50
-#define STARTING_HAPPINESS_PTS 50
+#define STARTING_HAPPINESS_PTS 5 
 #define STARTING_HUNGER_PTS 50
 
 // Message array indexes
@@ -138,9 +139,9 @@ void displayShuffleName(){
   M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.setCursor(10,190);
-//  M5.Lcd.fillRect(55, 220, 50, 20, FillColor);
   M5.Lcd.printf("%s","your name is shuffling..");
   delay(2000);
+  
   M5.Lcd.fillScreen(FillColor);
 
 //show the name
@@ -156,6 +157,7 @@ void displayShuffleName(){
 
 void displayNameScore(){
   M5.Lcd.fillScreen(FillColor);
+  
   M5.Lcd.setCursor(65,30);
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.print(NamePart1[NameIndex[0]]);
@@ -169,10 +171,11 @@ void displayNameScore(){
   
   M5.Lcd.clear();
   M5.Lcd.fillScreen(FillColor);
+  
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.setCursor(20,190);
-  M5.Lcd.println("Your score is uploaded");
-  delay(2000);
+  M5.Lcd.println("Your score is uploading");
+  delay(500);
   }
 
 void displayThanks(){
@@ -302,7 +305,7 @@ void updateScore(void *pvParameters) {
     }
     
     score = score + 1 ;
-    if (score > 999999) {
+    if (score > WINNING_SCORE) {
       win();
     }
     
@@ -475,7 +478,7 @@ void animateIdle(void *pvParameters) {
   
 void updatePts() {
   // Check whether we won
-  if (score > 999999) {
+  if (score > WINNING_SCORE) {
     win();
   }
   // Every activity's points go down by 1 every second
