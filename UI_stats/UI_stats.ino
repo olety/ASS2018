@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include "DHT12.h"
+#include <Wire.h>
+
 
 //Graphics
 #define living1 spider_living1_map
@@ -30,7 +33,7 @@
 #define STARTING_SCORE 0
 #define WINNING_SCORE 100
 #define STARTING_SLEEP_PTS 50
-#define STARTING_HAPPINESS_PTS 5 
+#define STARTING_HAPPINESS_PTS 50 
 #define STARTING_HUNGER_PTS 50
 
 // Message array indexes
@@ -68,7 +71,7 @@ deadArray2 dead2[];
 
 // Game variables
 unsigned int score = STARTING_SCORE;
-int temp = 0;
+int temp = 27;
 int sleep_pts = STARTING_SLEEP_PTS;
 int happiness_pts = STARTING_HAPPINESS_PTS;
 int hunger_pts = STARTING_HUNGER_PTS;
@@ -85,6 +88,9 @@ const char *SERVER_ADDRESS = "192.168.137.1";
 const char *SERVER_REQUEST = "{\"name\":\"%s %s\",\"score\":\"%d\"}";
 char send_req[200];
 HTTPClient http;
+
+//temperature
+DHT12 dht12;
 
 // Tasks
 TaskHandle_t idleHandle;
@@ -203,10 +209,10 @@ void sendScore(){
 }
 
 void displayTemp(){
-  M5.Lcd.fillRect(235, 0, 100, 20, FillColor);
+  M5.Lcd.fillRect(235, 20, 100, 20, FillColor);
   M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(DefaultTextColor);
-  M5.Lcd.setCursor(235,0);
+  M5.Lcd.setCursor(235,20);
   M5.Lcd.printf("Temp:%d", temp);
 }
 
@@ -216,6 +222,11 @@ void displayMessage(){
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.setCursor(0,0);
   M5.Lcd.print(message[messageIndex]);
+  M5.Lcd.fillRect(0, 20, 227, 40, FillColor);
+  M5.Lcd.setTextSize(2);
+  M5.Lcd.setTextColor(DefaultTextColor);
+  M5.Lcd.setCursor(0,20);
+  M5.Lcd.print(temp == 27 ? "Temperature is good" : temp > 27 ? "Temperature is high" : "Temperature is low");
 }
 
 void displayScore(){
@@ -223,10 +234,10 @@ void displayScore(){
   int ts = score;
   while((ts = ts/10) > 0)
     x++;
-  M5.Lcd.fillRect(235-x*12, 20, 200, 40, FillColor);
+  M5.Lcd.fillRect(235-x*12, 0, 200, 20, FillColor);
   M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(DefaultTextColor);
-  M5.Lcd.setCursor(235-x*12,20);
+  M5.Lcd.setCursor(235-x*12,0);
   M5.Lcd.printf("Score:%d", score);
 }
 
@@ -510,38 +521,46 @@ void updatePts() {
   }
   // Every activity's points go down by 1 every second
   if (currentState == STATE_IDLE) {
-    sleep_pts = sleep_pts - (int) 1;
-    happiness_pts = happiness_pts - 1;
+    sleep_pts = sleep_pts - (int) 1 - (int)abs(27-temp)*2;
+    happiness_pts = happiness_pts - 1 - (int)abs(27-temp)*2;
     hunger_pts = hunger_pts + 1;
   }
   // Check whether the pet has died
   checkDeath();
 }
 
+void tempThread(void *p){
+  for(;;){
+    temp = dht12.readTemperature();
+    delay(1000);
+  }
+}
+
 // the setup routine runs once when M5Stack starts up
 void setup(){
   // Initialize the M5Stack object
   M5.begin();
+  Wire.begin();
   M5.Lcd.clear();
   M5.Lcd.fillScreen(FillColor);
   // Wi-Fi setup start
   // open serial connection to monitor the connection result
-  Serial.begin(115200);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-
-  // while the wifi is connectiong...
-  M5.Lcd.setTextColor(DefaultTextColor);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    M5.Lcd.println("Connecting to WiFi..");
-  }
-
-  // successful connection
-  M5.Lcd.println("Connected to the WiFi..");
-  M5.Lcd.println(WiFi.localIP());
-  M5.Lcd.clear();
-  M5.Lcd.fillScreen(FillColor);
-  // Wi-fi setup end
+//  Serial.begin(115200);
+//  WiFi.begin(WIFI_SSID, WIFI_PASS);
+//
+//  // while the wifi is connectiong...
+//  M5.Lcd.setTextColor(DefaultTextColor);
+//  while (WiFi.status() != WL_CONNECTED) {
+//    delay(500);
+//    M5.Lcd.println("Connecting to WiFi..");
+//  }
+//
+//  // successful connection
+//  M5.Lcd.println("Connected to the WiFi..");
+//  M5.Lcd.println(WiFi.localIP());
+//  M5.Lcd.clear();
+//  M5.Lcd.fillScreen(FillColor);
+//  // Wi-fi setup end
   
   // Task that updates the score every 5 seconds
   xTaskCreatePinnedToCore (
@@ -568,6 +587,16 @@ void setup(){
     xTaskCreatePinnedToCore (
       animateIdle,
       "animateIdle",
+      4096,
+      NULL,
+      3,
+      &idleHandle,
+      0
+    );
+
+    xTaskCreatePinnedToCore (
+      tempThread,
+      "tempThread",
       4096,
       NULL,
       3,
