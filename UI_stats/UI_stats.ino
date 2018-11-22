@@ -183,9 +183,8 @@ void displayThanks(){
   M5.Lcd.setCursor(20,190);
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.println("Thank you for playing");
-  delay(5000);
-  M5.Lcd.fillScreen(FillColor);
-  }
+  delay(100);
+}
 
 void sendScore(){
   
@@ -316,8 +315,26 @@ void updateScore(void *pvParameters) {
 void processScore(){
   displayShuffleName();
   displayNameScore();
+//  sendScore();
   displayThanks();
-  sendScore();
+}
+
+void handleReset(){
+  M5.Lcd.fillScreen(FillColor);
+  M5.Lcd.setCursor(20,190);
+  M5.Lcd.setTextColor(DefaultTextColor);
+  M5.Lcd.println("Press any button to \n\t\trestart");
+  delay(500);
+////  while(1){
+//    if (M5.BtnB.wasPressed()) {
+//        M5.Lcd.fillScreen(FillColor);
+//        M5.Lcd.setCursor(20,190);
+//        M5.Lcd.setTextColor(DefaultTextColor);
+//        M5.Lcd.println("Resetting the game...");
+//        reset_game();
+//        break;
+//      } 
+//  }
 }
 
 void lose() {
@@ -327,6 +344,11 @@ void lose() {
   
 //  M5.Lcd.fillScreen(FillColor);
   processScore();
+  M5.Lcd.fillScreen(FillColor);
+  M5.Lcd.setCursor(20,190);
+  M5.Lcd.setTextColor(DefaultTextColor);
+  M5.Lcd.println("Press any button to \n\t\trestart");
+  delay(500);
 }
 
 void win() {
@@ -336,6 +358,7 @@ void win() {
   
 //  M5.Lcd.fillScreen(FillColor);
   processScore();
+  handleReset();
   
 }
 
@@ -358,8 +381,15 @@ void checkDeath() {
 
 void reset_game() {
   M5.Lcd.clear();
+  M5.Lcd.fillScreen(FillColor);
   M5.Lcd.setTextColor(DefaultTextColor);
+  M5.Lcd.setCursor(20,190);
   M5.Lcd.println("RESETTING THE GAME");
+  delay(1000);
+  
+  M5.Lcd.clear();
+  M5.Lcd.fillScreen(FillColor);
+  M5.Lcd.setTextColor(DefaultTextColor);
   score = STARTING_SCORE;
   sleep_pts = STARTING_SLEEP_PTS;
   happiness_pts = STARTING_HAPPINESS_PTS;
@@ -367,6 +397,7 @@ void reset_game() {
   messageIndex = MSG_IDLE;
   currentState = STATE_IDLE;
   updateUI();
+  M5.update();
 }
 
 void animation_idle(){
@@ -418,11 +449,7 @@ void processEvent(void *pvParameters) {
   // Handle a button press and update the score afterwards
   // We should also pause the updatePts activity during the event
   for (;;) {
-    if (currentState == STATE_DEATH || currentState == STATE_WIN) {
-      if (/*M5.BtnA.wasPressed() || */M5.BtnB.wasPressed()/* || M5.BtnC.wasPressed()*/) {
-        reset_game();
-      } 
-    } else {
+    if (currentState != STATE_DEATH && currentState != STATE_WIN) {
       // Check if a button was pressed
       if (M5.BtnA.wasPressed()) {
         vTaskSuspend( idleHandle );
@@ -520,7 +547,7 @@ void setup(){
   xTaskCreatePinnedToCore (
       updateScore,
       "updateScore",
-      4096,
+      2048,
       NULL,
       2,
       NULL,
