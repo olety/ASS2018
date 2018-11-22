@@ -88,6 +88,9 @@ HTTPClient http;
 
 // Tasks
 TaskHandle_t idleHandle;
+TaskHandle_t scorePointsHandle;
+TaskHandle_t eventHandle;
+TaskHandle_t endgameHandle;
 
 // Display messages
 String message[] = {
@@ -140,7 +143,10 @@ void displayShuffleName(){
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.setCursor(10,190);
   M5.Lcd.printf("%s","your name is shuffling..");
-  delay(2000);
+
+  for (int i=0; i<4; i++){
+    animation_dead();
+  }
   
   M5.Lcd.fillScreen(FillColor);
 
@@ -151,7 +157,10 @@ void displayShuffleName(){
   M5.Lcd.print(NamePart1[NameIndex[0]]);
   M5.Lcd.print(" ");
   M5.Lcd.print(NamePart2[NameIndex[1]]);
-  delay(3000);
+
+  for (int i=0; i<6; i++){
+    animation_dead();
+  }
   
   }
 
@@ -167,23 +176,29 @@ void displayNameScore(){
   M5.Lcd.print("You got");
   M5.Lcd.setCursor(85,210);
   M5.Lcd.printf("%d",score);
-  delay(5000);
   
-  M5.Lcd.clear();
+ for (int i=0; i<10; i++){
+    animation_dead();
+  }
+  
+//  M5.Lcd.clear();
   M5.Lcd.fillScreen(FillColor);
   
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.setCursor(20,190);
   M5.Lcd.println("Your score is uploading");
-  delay(500);
+  animation_dead();
   }
 
 void displayThanks(){
   M5.Lcd.fillScreen(FillColor);
   M5.Lcd.setCursor(20,190);
   M5.Lcd.setTextColor(DefaultTextColor);
-  M5.Lcd.println("Thank you for playing");
-  delay(100);
+  M5.Lcd.println("Thank you for playing"); 
+  for (int i=0; i<4; i++){
+    animation_dead();
+  }
+  
 }
 
 void sendScore(){
@@ -215,6 +230,7 @@ void displayMessage(){
   M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.setCursor(0,0);
+//  M5.Lcd.print(currentState);
   M5.Lcd.print(message[messageIndex]);
 }
 
@@ -282,7 +298,7 @@ void updateUI(){
   }
 }
 
-void updateScore(void *pvParameters) {
+void updateScorePoints(void *pvParameters) {
   // Update the score based on the following formula (every 5 sec):
   // score = score + 1 + 1 if h in range(20,80) + 1 if hp in range(20,80) + 1 if s in range(20,80)
   // If the score is > 999,999 you win the game
@@ -303,19 +319,34 @@ void updateScore(void *pvParameters) {
       score = score + 1;
     }
     
-    score = score + 1 ;
-    if (score > WINNING_SCORE) {
-      win();
-    }
+    score = score + 1;
     
-    delay(5000);
+    // Update the points
+    if (currentState == STATE_IDLE) {
+      sleep_pts = sleep_pts - 1;
+      happiness_pts = happiness_pts - 1;
+      hunger_pts = hunger_pts + 1;
+    
+      if ((sleep_pts > 0 && sleep_pts < 20) || (sleep_pts > 80 && sleep_pts < 100)) {
+          // Sleep is in the "danger zone"
+          happiness_pts = happiness_pts - 1;
+      } 
+      
+      if ((hunger_pts > 0 && hunger_pts < 20) || (hunger_pts > 80 && hunger_pts < 100)) {
+          // Hunger is in the "danger zone"
+          happiness_pts = happiness_pts - 1;
+      }
+    }
+      
+    delay(1000);
   }
 }
 
 void processScore(){
   displayShuffleName();
   displayNameScore();
-//  sendScore();
+  // TODO: Uncomment SendScore
+//  sendScore(); 
   displayThanks();
 }
 
@@ -323,36 +354,49 @@ void handleReset(){
   M5.Lcd.fillScreen(FillColor);
   M5.Lcd.setCursor(20,190);
   M5.Lcd.setTextColor(DefaultTextColor);
-  M5.Lcd.println("Press any button to \n\t\trestart");
-  delay(500);
-////  while(1){
-//    if (M5.BtnB.wasPressed()) {
-//        M5.Lcd.fillScreen(FillColor);
-//        M5.Lcd.setCursor(20,190);
-//        M5.Lcd.setTextColor(DefaultTextColor);
-//        M5.Lcd.println("Resetting the game...");
-//        reset_game();
-//        break;
-//      } 
-//  }
-}
-
-void lose() {
-  // TODO(UI ppl): show the resume button and the score 
-  messageIndex = MSG_DEATH;
-  currentState = STATE_DEATH;
+  M5.Lcd.println("Restarting in 3..");
+  delay(1000);
   
-//  M5.Lcd.fillScreen(FillColor);
-  processScore();
   M5.Lcd.fillScreen(FillColor);
   M5.Lcd.setCursor(20,190);
   M5.Lcd.setTextColor(DefaultTextColor);
-  M5.Lcd.println("Press any button to \n\t\trestart");
-  delay(500);
+  M5.Lcd.println("Restarting in 2..");
+  delay(1000);
+  
+  M5.Lcd.fillScreen(FillColor);
+  M5.Lcd.setCursor(20,190);
+  M5.Lcd.setTextColor(DefaultTextColor);
+  M5.Lcd.println("Restarting in 1..");
+  delay(1000);
+  
+  M5.Lcd.fillScreen(FillColor);
+  M5.Lcd.setCursor(20,190);
+  M5.Lcd.setTextColor(DefaultTextColor);
+  M5.Lcd.println("Resetting the game...");
+  reset_game();
+}
+
+void lose() {
+  vTaskSuspend(idleHandle);
+  vTaskSuspend(scorePointsHandle);
+  vTaskSuspend(eventHandle);
+  
+  // Set the states
+  messageIndex = MSG_DEATH;
+  currentState = STATE_DEATH;
+  
+  
+//  M5.Lcd.fillScreen(FillColor);
+  processScore();
+  handleReset();
 }
 
 void win() {
-  // TODO(UI ppl): show the resume button and the score 
+  vTaskSuspend(idleHandle);
+  vTaskSuspend(scorePointsHandle);
+  vTaskSuspend(eventHandle);
+
+  // Set the states
   messageIndex = MSG_WIN;
   currentState = STATE_WIN; 
   
@@ -362,42 +406,34 @@ void win() {
   
 }
 
-void checkDeath() {
-  if (sleep_pts <= 0 || sleep_pts >= 100 || hunger_pts <= 0 || hunger_pts >= 100  || happiness_pts <= 0 || happiness_pts >= 100 ) { 
-      // Some points are out of the boundaries
-      lose();
-  }
-  
-  if ((sleep_pts > 0 && sleep_pts < 20) || (sleep_pts > 80 && sleep_pts < 100)) {
-      // Sleep is in the "danger zone"
-      happiness_pts = happiness_pts - 1;
-  } 
-  
-  if ((hunger_pts > 0 && hunger_pts < 20) || (hunger_pts > 80 && hunger_pts < 100)) {
-      // Hunger is in the "danger zone"
-      happiness_pts = happiness_pts - 1;
-  }
-}
+//void checkDeath() {
+//  if (sleep_pts <= 0 || sleep_pts >= 100 || hunger_pts <= 0 || hunger_pts >= 100  || happiness_pts <= 0 || happiness_pts >= 100 ) { 
+//      // Some points are out of the boundaries
+//      lose();
+//  }
+//}
 
 void reset_game() {
+  // Resetting the game
   M5.Lcd.clear();
-  M5.Lcd.fillScreen(FillColor);
-  M5.Lcd.setTextColor(DefaultTextColor);
-  M5.Lcd.setCursor(20,190);
-  M5.Lcd.println("RESETTING THE GAME");
-  delay(1000);
   
-  M5.Lcd.clear();
   M5.Lcd.fillScreen(FillColor);
   M5.Lcd.setTextColor(DefaultTextColor);
+  
+  // Assigning variables
   score = STARTING_SCORE;
   sleep_pts = STARTING_SLEEP_PTS;
   happiness_pts = STARTING_HAPPINESS_PTS;
   hunger_pts = STARTING_HUNGER_PTS;
   messageIndex = MSG_IDLE;
   currentState = STATE_IDLE;
+
   updateUI();
-  M5.update();
+  // Resuming the game tasks
+  vTaskResume(idleHandle);
+  vTaskResume(scorePointsHandle);
+  vTaskResume(eventHandle);
+  
 }
 
 void animation_idle(){
@@ -448,74 +484,75 @@ void animation_dead(){
 void processEvent(void *pvParameters) {
   // Handle a button press and update the score afterwards
   // We should also pause the updatePts activity during the event
-  for (;;) {
+  for (;;) {    
     if (currentState != STATE_DEATH && currentState != STATE_WIN) {
+      M5.update();
       // Check if a button was pressed
       if (M5.BtnA.wasPressed()) {
         vTaskSuspend( idleHandle );
+        
         sleep_pts = sleep_pts + 5;
         messageIndex = MSG_SLEEP;
         currentState = STATE_SLEEP;
-        checkDeath();
+        
+//        checkDeath();
         animation_sleeping();
         animation_sleeping();
         
         vTaskResume( idleHandle );
-      }
-      
-      if (M5.BtnB.wasPressed()) {
+        
+        currentState = STATE_IDLE;
+        messageIndex = MSG_IDLE;
+      } else if (M5.BtnB.wasPressed()) {
         vTaskSuspend( idleHandle );
         hunger_pts = hunger_pts - 5;
         messageIndex = MSG_HUNGER;
         currentState = STATE_HUNGER;
-        checkDeath();
+        
+//        checkDeath();
         animation_eating();
         animation_eating();
+        
+        currentState = STATE_IDLE;
+        messageIndex = MSG_IDLE;
         vTaskResume( idleHandle );
-        M5.update();
-      }
-      
-      if (M5.BtnC.wasPressed()) {
+      } else if (M5.BtnC.wasPressed()) {
         vTaskSuspend( idleHandle );
         happiness_pts = happiness_pts + 5;
         messageIndex = MSG_HAPPINESS;
         currentState = STATE_HAPPINESS;
-        checkDeath();
+        
+//        checkDeath();
         animation_playing();
         animation_playing();
+        
+        currentState = STATE_IDLE;
+        messageIndex = MSG_IDLE;
         vTaskResume( idleHandle );
       }
       
-      currentState = STATE_IDLE;
-      messageIndex = MSG_IDLE;
-      M5.update();
     }
   }
 }
 
 void animateIdle(void *pvParameters) {
   for (;;) {
-    if (currentState == STATE_DEATH || currentState == STATE_WIN) {
-      animation_dead();
-    } else {
+    if (currentState != STATE_DEATH && currentState != STATE_WIN) {
       animation_idle();
     }
   }
 }
-  
-void updatePts() {
-  // Check whether we won
-  if (score > WINNING_SCORE) {
-    win();
-  }
-  // Every activity's points go down by 1 every second
-  if (currentState == STATE_IDLE) {
-    sleep_pts = sleep_pts - (int) 1;
-    happiness_pts = happiness_pts - 1;
-    hunger_pts = hunger_pts + 1;
-  }
-  // Check whether the pet has died
-  checkDeath();
+
+void checkEndGame(){
+    if (currentState != STATE_DEATH && currentState != STATE_WIN){  
+      if (score >= WINNING_SCORE) {
+        win();
+      }
+      else if (sleep_pts < 0 || sleep_pts > 100 || hunger_pts < 0 || hunger_pts > 100  || happiness_pts < 0 || happiness_pts > 100 ) { 
+          // Some points are out of the boundaries
+          lose();
+      }
+    }
 }
 
 // the setup routine runs once when M5Stack starts up
@@ -531,10 +568,12 @@ void setup(){
 
   // while the wifi is connectiong...
   M5.Lcd.setTextColor(DefaultTextColor);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    M5.Lcd.println("Connecting to WiFi..");
-  }
+
+  //TODO: Uncomment WiFi stuff
+//  while (WiFi.status() != WL_CONNECTED) {
+//    delay(500);
+//    M5.Lcd.println("Connecting to WiFi..");
+//  }
 
   // successful connection
   M5.Lcd.println("Connected to the WiFi..");
@@ -545,44 +584,40 @@ void setup(){
   
   // Task that updates the score every 5 seconds
   xTaskCreatePinnedToCore (
-      updateScore,
-      "updateScore",
+      updateScorePoints,
+      "updateScorePoints",
       2048,
       NULL,
       2,
-      NULL,
+      &scorePointsHandle,
       0
     );
+
     
   // Task for processing the button press
   xTaskCreatePinnedToCore (
       processEvent,
       "processEvent",
-      4096,
+      2048,
       NULL,
-      1,
-      NULL,
+      0,
+      &eventHandle,
       0
     );
 
     xTaskCreatePinnedToCore (
       animateIdle,
       "animateIdle",
-      4096,
+      2048,
       NULL,
-      3,
+      1,
       &idleHandle,
       0
     );
-    
-   
 }
 
 
 // the loop routine runs over and over again forever
 void loop() {
-  if (currentState != STATE_DEATH && currentState != STATE_WIN){
-    updatePts();
-    delay(1000);    
-  }
+  checkEndGame();
 }
