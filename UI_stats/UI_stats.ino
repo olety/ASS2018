@@ -222,7 +222,7 @@ void displayMessage(){
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.setCursor(0,0);
   M5.Lcd.print(message[messageIndex]);
-  M5.Lcd.fillRect(0, 20, 227, 40, FillColor);
+  M5.Lcd.fillRect(0, 20, 227, 35, FillColor);
   M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.setCursor(0,20);
@@ -413,8 +413,10 @@ void reset_game() {
 
 void animation_idle(){
   updateUI();
+  if (currentState == STATE_IDLE)
   M5.Lcd.drawBitmap(96,56,128,128,living1);
   delay(500);
+  if (currentState == STATE_IDLE)
   M5.Lcd.drawBitmap(96,56,128,128,living2);
   delay(500);
   updateUI();
