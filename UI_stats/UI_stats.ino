@@ -30,10 +30,10 @@
 #define deadArray2 extern unsigned char
 
 // Game settings
-#define STARTING_SCORE 0
+#define STARTING_SCORE 90
 #define WINNING_SCORE 100
 #define STARTING_SLEEP_PTS 50
-#define STARTING_HAPPINESS_PTS 50
+#define STARTING_HAPPINESS_PTS 20
 #define STARTING_HUNGER_PTS 50
 
 // Message array indexes
@@ -237,13 +237,13 @@ void displayMessage(){
   M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.setCursor(0,0);
-//  M5.Lcd.print(currentState);
-  M5.Lcd.print(message[messageIndex]);
+  M5.Lcd.print(currentState);
+//  M5.Lcd.print(message[messageIndex]);
   M5.Lcd.fillRect(0, 20, 227, 35, FillColor);
   M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.setCursor(0,20);
-  M5.Lcd.print(temp == 27 ? "Temperature is good" : temp > 27 ? "Temperature is high" : "Temperature is low");
+  M5.Lcd.print(temp == 27 ? "Temp is good" : temp > 27 ? "Temp is high" : "Temp is low");
 }
 
 void displayScore(){
@@ -331,12 +331,16 @@ void updateScorePoints(void *pvParameters) {
       score = score + 1;
     }
 
+    // Basic score bonus
     score = score + 1;
-
+    
+    // Update the temperature
+    temp = dht12.readTemperature();
+    
     // Update the points
     if (currentState == STATE_IDLE) {
-      sleep_pts = sleep_pts - 1;
-      happiness_pts = happiness_pts - 1;
+      sleep_pts = sleep_pts - (int) 1 - (int)abs(27-temp)*2;
+      happiness_pts = happiness_pts - 1 - (int)abs(27-temp)*2;
       hunger_pts = hunger_pts + 1;
 
       if ((sleep_pts > 0 && sleep_pts < 20) || (sleep_pts > 80 && sleep_pts < 100)) {
@@ -385,7 +389,31 @@ void handleReset(){
   M5.Lcd.setCursor(20,190);
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.println("Resetting the game...");
+  
   reset_game();
+}
+
+void reset_game(){
+   // Resetting the game
+  M5.Lcd.clear();
+
+  M5.Lcd.fillScreen(FillColor);
+  M5.Lcd.setTextColor(DefaultTextColor);
+
+  // Assigning variables
+  score = STARTING_SCORE;
+  sleep_pts = STARTING_SLEEP_PTS;
+  happiness_pts = STARTING_HAPPINESS_PTS;
+  hunger_pts = STARTING_HUNGER_PTS;
+  messageIndex = MSG_IDLE;
+  currentState = STATE_IDLE;
+
+  updateUI();
+  
+  // Resuming the game tasks
+  vTaskResume(idleHandle);
+  vTaskResume(scorePointsHandle);
+  vTaskResume(eventHandle);
 }
 
 void lose() {
@@ -425,35 +453,10 @@ void win() {
 //  }
 //}
 
-void reset_game() {
-  // Resetting the game
-  M5.Lcd.clear();
-
-  M5.Lcd.fillScreen(FillColor);
-  M5.Lcd.setTextColor(DefaultTextColor);
-
-  // Assigning variables
-  score = STARTING_SCORE;
-  sleep_pts = STARTING_SLEEP_PTS;
-  happiness_pts = STARTING_HAPPINESS_PTS;
-  hunger_pts = STARTING_HUNGER_PTS;
-  messageIndex = MSG_IDLE;
-  currentState = STATE_IDLE;
-
-  updateUI();
-  // Resuming the game tasks
-  vTaskResume(idleHandle);
-  vTaskResume(scorePointsHandle);
-  vTaskResume(eventHandle);
-
-}
-
 void animation_idle(){
   updateUI();
-  if (currentState == STATE_IDLE)
   M5.Lcd.drawBitmap(96,56,128,128,living1);
   delay(500);
-  if (currentState == STATE_IDLE)
   M5.Lcd.drawBitmap(96,56,128,128,living2);
   delay(500);
   updateUI();
@@ -562,7 +565,7 @@ void checkEndGame(){
       if (score >= WINNING_SCORE) {
         win();
       }
-      else if (sleep_pts < 0 || sleep_pts > 100 || hunger_pts < 0 || hunger_pts > 100  || happiness_pts < 0 || happiness_pts > 100 ) {
+      else if (sleep_pts < 0 || sleep_pts >= 100 || hunger_pts < 0 || hunger_pts >= 100  || happiness_pts < 0 || happiness_pts >= 100 ) {
           // Some points are out of the boundaries
           lose();
       }
@@ -579,6 +582,7 @@ void tempThread(void *p){
 // the setup routine runs once when M5Stack starts up
 void setup(){
   // Initialize the M5Stack object
+//  temp = 25;
   M5.begin();
   Wire.begin();
   M5.Lcd.clear();
@@ -634,17 +638,6 @@ void setup(){
       &idleHandle,
       0
     );
-
-    xTaskCreatePinnedToCore (
-      tempThread,
-      "tempThread",
-      2048,
-      NULL,
-      3,
-      &tempHandle,
-      0
-    );
-
 
 }
 
