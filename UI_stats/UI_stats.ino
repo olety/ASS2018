@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include "DHT12.h"
+#include <Wire.h>
+
 
 //Graphics
 #define living1 spider_living1_map
@@ -30,7 +33,7 @@
 #define STARTING_SCORE 0
 #define WINNING_SCORE 100
 #define STARTING_SLEEP_PTS 50
-#define STARTING_HAPPINESS_PTS 5 
+#define STARTING_HAPPINESS_PTS 50
 #define STARTING_HUNGER_PTS 50
 
 // Message array indexes
@@ -68,7 +71,7 @@ deadArray2 dead2[];
 
 // Game variables
 unsigned int score = STARTING_SCORE;
-int temp = 0;
+int temp = 27;
 int sleep_pts = STARTING_SLEEP_PTS;
 int happiness_pts = STARTING_HAPPINESS_PTS;
 int hunger_pts = STARTING_HUNGER_PTS;
@@ -86,11 +89,15 @@ const char *SERVER_REQUEST = "{\"name\":\"%s %s\",\"score\":\"%d\"}";
 char send_req[200];
 HTTPClient http;
 
+//temperature
+DHT12 dht12;
+
 // Tasks
 TaskHandle_t idleHandle;
 TaskHandle_t scorePointsHandle;
 TaskHandle_t eventHandle;
 TaskHandle_t endgameHandle;
+TaskHandle_t tempHandle;
 
 // Display messages
 String message[] = {
@@ -126,7 +133,7 @@ String NamePart2[] = {
   "Peach",
   "Grape",
   "Cucumber"
-  
+
 };
 
 
@@ -147,7 +154,7 @@ void displayShuffleName(){
   for (int i=0; i<4; i++){
     animation_dead();
   }
-  
+
   M5.Lcd.fillScreen(FillColor);
 
 //show the name
@@ -161,12 +168,12 @@ void displayShuffleName(){
   for (int i=0; i<6; i++){
     animation_dead();
   }
-  
+
   }
 
 void displayNameScore(){
   M5.Lcd.fillScreen(FillColor);
-  
+
   M5.Lcd.setCursor(65,30);
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.print(NamePart1[NameIndex[0]]);
@@ -176,14 +183,14 @@ void displayNameScore(){
   M5.Lcd.print("You got");
   M5.Lcd.setCursor(85,210);
   M5.Lcd.printf("%d",score);
-  
+
  for (int i=0; i<10; i++){
     animation_dead();
   }
-  
+
 //  M5.Lcd.clear();
   M5.Lcd.fillScreen(FillColor);
-  
+
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.setCursor(20,190);
   M5.Lcd.println("Your score is uploading");
@@ -194,15 +201,15 @@ void displayThanks(){
   M5.Lcd.fillScreen(FillColor);
   M5.Lcd.setCursor(20,190);
   M5.Lcd.setTextColor(DefaultTextColor);
-  M5.Lcd.println("Thank you for playing"); 
+  M5.Lcd.println("Thank you for playing");
   for (int i=0; i<4; i++){
     animation_dead();
   }
-  
+
 }
 
 void sendScore(){
-  
+
   // Send a post request
 //  M5.Lcd.println("Connecting to the server");
   http.begin(SERVER_ADDRESS, 5656, "/" );
@@ -218,10 +225,10 @@ void sendScore(){
 }
 
 void displayTemp(){
-  M5.Lcd.fillRect(235, 0, 100, 20, FillColor);
+  M5.Lcd.fillRect(235, 20, 100, 20, FillColor);
   M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(DefaultTextColor);
-  M5.Lcd.setCursor(235,0);
+  M5.Lcd.setCursor(235,20);
   M5.Lcd.printf("Temp:%d", temp);
 }
 
@@ -232,6 +239,11 @@ void displayMessage(){
   M5.Lcd.setCursor(0,0);
 //  M5.Lcd.print(currentState);
   M5.Lcd.print(message[messageIndex]);
+  M5.Lcd.fillRect(0, 20, 227, 35, FillColor);
+  M5.Lcd.setTextSize(2);
+  M5.Lcd.setTextColor(DefaultTextColor);
+  M5.Lcd.setCursor(0,20);
+  M5.Lcd.print(temp == 27 ? "Temperature is good" : temp > 27 ? "Temperature is high" : "Temperature is low");
 }
 
 void displayScore(){
@@ -239,26 +251,26 @@ void displayScore(){
   int ts = score;
   while((ts = ts/10) > 0)
     x++;
-  M5.Lcd.fillRect(235-x*12, 20, 200, 40, FillColor);
+  M5.Lcd.fillRect(235-x*12, 0, 200, 20, FillColor);
   M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(DefaultTextColor);
-  M5.Lcd.setCursor(235-x*12,20);
+  M5.Lcd.setCursor(235-x*12,0);
   M5.Lcd.printf("Score:%d", score);
 }
 
 void displayFunctions(){
-  M5.Lcd.setTextSize(1);  
-  
+  M5.Lcd.setTextSize(1);
+
   // button left
   M5.Lcd.setCursor(55,210);
   M5.Lcd.setTextColor(0x51d);
   M5.Lcd.print("sleep");
-  
+
   // button mid
   M5.Lcd.setCursor(145,210);
   M5.Lcd.setTextColor(0x2589);
   M5.Lcd.print("hunger");
-  
+
   // button right
   M5.Lcd.setCursor(240,210);
   M5.Lcd.setTextColor(0xfd79);
@@ -274,13 +286,13 @@ void displayStats(){
   M5.Lcd.setCursor(55,220);
   M5.Lcd.setTextColor(0x51d);
   M5.Lcd.printf("%d%%", sleep_pts);
-  
+
   // button mid
   M5.Lcd.fillRect(145, 220, 50, 20, FillColor);
   M5.Lcd.setCursor(145,220);
   M5.Lcd.setTextColor(0x2589);
   M5.Lcd.printf("%d%%", hunger_pts);
-  
+
   // button right
   M5.Lcd.fillRect(240, 220, 50, 20, FillColor);
   M5.Lcd.setCursor(240,220);
@@ -310,34 +322,34 @@ void updateScorePoints(void *pvParameters) {
     if (sleep_pts >= 20 && sleep_pts<= 80) {
       score = score + 1;
     }
-    
+
     if (hunger_pts >= 20 && hunger_pts<= 80) {
       score = score + 1;
     }
-    
+
     if (happiness_pts >= 20 && happiness_pts<= 80) {
       score = score + 1;
     }
-    
+
     score = score + 1;
-    
+
     // Update the points
     if (currentState == STATE_IDLE) {
       sleep_pts = sleep_pts - 1;
       happiness_pts = happiness_pts - 1;
       hunger_pts = hunger_pts + 1;
-    
+
       if ((sleep_pts > 0 && sleep_pts < 20) || (sleep_pts > 80 && sleep_pts < 100)) {
           // Sleep is in the "danger zone"
           happiness_pts = happiness_pts - 1;
-      } 
-      
+      }
+
       if ((hunger_pts > 0 && hunger_pts < 20) || (hunger_pts > 80 && hunger_pts < 100)) {
           // Hunger is in the "danger zone"
           happiness_pts = happiness_pts - 1;
       }
     }
-      
+
     delay(1000);
   }
 }
@@ -346,7 +358,7 @@ void processScore(){
   displayShuffleName();
   displayNameScore();
   // TODO: Uncomment SendScore
-//  sendScore(); 
+//  sendScore();
   displayThanks();
 }
 
@@ -356,19 +368,19 @@ void handleReset(){
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.println("Restarting in 3..");
   delay(1000);
-  
+
   M5.Lcd.fillScreen(FillColor);
   M5.Lcd.setCursor(20,190);
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.println("Restarting in 2..");
   delay(1000);
-  
+
   M5.Lcd.fillScreen(FillColor);
   M5.Lcd.setCursor(20,190);
   M5.Lcd.setTextColor(DefaultTextColor);
   M5.Lcd.println("Restarting in 1..");
   delay(1000);
-  
+
   M5.Lcd.fillScreen(FillColor);
   M5.Lcd.setCursor(20,190);
   M5.Lcd.setTextColor(DefaultTextColor);
@@ -380,12 +392,12 @@ void lose() {
   vTaskSuspend(idleHandle);
   vTaskSuspend(scorePointsHandle);
   vTaskSuspend(eventHandle);
-  
+
   // Set the states
   messageIndex = MSG_DEATH;
   currentState = STATE_DEATH;
-  
-  
+
+
 //  M5.Lcd.fillScreen(FillColor);
   processScore();
   handleReset();
@@ -398,16 +410,16 @@ void win() {
 
   // Set the states
   messageIndex = MSG_WIN;
-  currentState = STATE_WIN; 
-  
+  currentState = STATE_WIN;
+
 //  M5.Lcd.fillScreen(FillColor);
   processScore();
   handleReset();
-  
+
 }
 
 //void checkDeath() {
-//  if (sleep_pts <= 0 || sleep_pts >= 100 || hunger_pts <= 0 || hunger_pts >= 100  || happiness_pts <= 0 || happiness_pts >= 100 ) { 
+//  if (sleep_pts <= 0 || sleep_pts >= 100 || hunger_pts <= 0 || hunger_pts >= 100  || happiness_pts <= 0 || happiness_pts >= 100 ) {
 //      // Some points are out of the boundaries
 //      lose();
 //  }
@@ -416,10 +428,10 @@ void win() {
 void reset_game() {
   // Resetting the game
   M5.Lcd.clear();
-  
+
   M5.Lcd.fillScreen(FillColor);
   M5.Lcd.setTextColor(DefaultTextColor);
-  
+
   // Assigning variables
   score = STARTING_SCORE;
   sleep_pts = STARTING_SLEEP_PTS;
@@ -433,13 +445,15 @@ void reset_game() {
   vTaskResume(idleHandle);
   vTaskResume(scorePointsHandle);
   vTaskResume(eventHandle);
-  
+
 }
 
 void animation_idle(){
   updateUI();
+  if (currentState == STATE_IDLE)
   M5.Lcd.drawBitmap(96,56,128,128,living1);
   delay(500);
+  if (currentState == STATE_IDLE)
   M5.Lcd.drawBitmap(96,56,128,128,living2);
   delay(500);
   updateUI();
@@ -454,7 +468,7 @@ void animation_playing(){
   M5.Lcd.drawBitmap(160,56,64,128,playing2);
   delay(250);
   updateUI();
-  } 
+  }
 
 void animation_eating(){
   updateUI();
@@ -480,27 +494,27 @@ void animation_dead(){
   M5.Lcd.drawBitmap(96,56,128,128,dead2);
   delay(250);
   }
-  
+
 void processEvent(void *pvParameters) {
   // Handle a button press and update the score afterwards
   // We should also pause the updatePts activity during the event
-  for (;;) {    
+  for (;;) {
     if (currentState != STATE_DEATH && currentState != STATE_WIN) {
       M5.update();
       // Check if a button was pressed
       if (M5.BtnA.wasPressed()) {
         vTaskSuspend( idleHandle );
-        
+
         sleep_pts = sleep_pts + 5;
         messageIndex = MSG_SLEEP;
         currentState = STATE_SLEEP;
-        
+
 //        checkDeath();
         animation_sleeping();
         animation_sleeping();
-        
+
         vTaskResume( idleHandle );
-        
+
         currentState = STATE_IDLE;
         messageIndex = MSG_IDLE;
       } else if (M5.BtnB.wasPressed()) {
@@ -508,11 +522,11 @@ void processEvent(void *pvParameters) {
         hunger_pts = hunger_pts - 5;
         messageIndex = MSG_HUNGER;
         currentState = STATE_HUNGER;
-        
+
 //        checkDeath();
         animation_eating();
         animation_eating();
-        
+
         currentState = STATE_IDLE;
         messageIndex = MSG_IDLE;
         vTaskResume( idleHandle );
@@ -521,16 +535,16 @@ void processEvent(void *pvParameters) {
         happiness_pts = happiness_pts + 5;
         messageIndex = MSG_HAPPINESS;
         currentState = STATE_HAPPINESS;
-        
+
 //        checkDeath();
         animation_playing();
         animation_playing();
-        
+
         currentState = STATE_IDLE;
         messageIndex = MSG_IDLE;
         vTaskResume( idleHandle );
       }
-      
+
     }
   }
 }
@@ -544,32 +558,38 @@ void animateIdle(void *pvParameters) {
 }
 
 void checkEndGame(){
-    if (currentState != STATE_DEATH && currentState != STATE_WIN){  
+    if (currentState != STATE_DEATH && currentState != STATE_WIN){
       if (score >= WINNING_SCORE) {
         win();
       }
-      else if (sleep_pts < 0 || sleep_pts > 100 || hunger_pts < 0 || hunger_pts > 100  || happiness_pts < 0 || happiness_pts > 100 ) { 
+      else if (sleep_pts < 0 || sleep_pts > 100 || hunger_pts < 0 || hunger_pts > 100  || happiness_pts < 0 || happiness_pts > 100 ) {
           // Some points are out of the boundaries
           lose();
       }
     }
 }
 
+void tempThread(void *p){
+  for(;;){
+    temp = dht12.readTemperature();
+    delay(1000);
+  }
+}
+
 // the setup routine runs once when M5Stack starts up
 void setup(){
   // Initialize the M5Stack object
   M5.begin();
+  Wire.begin();
   M5.Lcd.clear();
   M5.Lcd.fillScreen(FillColor);
   // Wi-Fi setup start
   // open serial connection to monitor the connection result
-  Serial.begin(115200);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-
-  // while the wifi is connectiong...
-  M5.Lcd.setTextColor(DefaultTextColor);
-
-  //TODO: Uncomment WiFi stuff
+//  Serial.begin(115200);
+//  WiFi.begin(WIFI_SSID, WIFI_PASS);
+//
+//  // while the wifi is connectiong...
+//  M5.Lcd.setTextColor(DefaultTextColor);
 //  while (WiFi.status() != WL_CONNECTED) {
 //    delay(500);
 //    M5.Lcd.println("Connecting to WiFi..");
@@ -581,7 +601,7 @@ void setup(){
   M5.Lcd.clear();
   M5.Lcd.fillScreen(FillColor);
   // Wi-fi setup end
-  
+
   // Task that updates the score every 5 seconds
   xTaskCreatePinnedToCore (
       updateScorePoints,
@@ -593,7 +613,7 @@ void setup(){
       0
     );
 
-    
+
   // Task for processing the button press
   xTaskCreatePinnedToCore (
       processEvent,
@@ -614,6 +634,18 @@ void setup(){
       &idleHandle,
       0
     );
+
+    xTaskCreatePinnedToCore (
+      tempThread,
+      "tempThread",
+      2048,
+      NULL,
+      3,
+      &tempHandle,
+      0
+    );
+
+
 }
 
 
