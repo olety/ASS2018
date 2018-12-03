@@ -378,7 +378,7 @@ void processScore(){
   displayShuffleName();
   displayNameScore();
   // TODO: Uncomment SendScore
-//  sendScore();
+  sendScore();
   displayThanks();
 }
 
@@ -640,15 +640,15 @@ void setup(){
   M5.Lcd.fillScreen(FillColor);
   // Wi-Fi setup start
   // open serial connection to monitor the connection result
-//  Serial.begin(115200);
-//  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.begin(115200);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
 //
 //  // while the wifi is connectiong...
-//  M5.Lcd.setTextColor(DefaultTextColor);
-//  while (WiFi.status() != WL_CONNECTED) {
-//    delay(500);
-//    M5.Lcd.println("Connecting to WiFi..");
-//  }
+  M5.Lcd.setTextColor(DefaultTextColor);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    M5.Lcd.println("Connecting to WiFi..");
+  }
 
   // successful connection
   M5.Lcd.println("Connected to the WiFi..");
