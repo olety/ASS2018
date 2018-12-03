@@ -5,6 +5,7 @@ var fs = require('fs');
 const app = express();
 app.use(express.json()); // to support JSON-encoded bodies
 app.use(express.urlencoded()); // to support URL-encoded bodies
+app.use(express.static(path.resolve(__dirname, './Public'))); // static files
 app.set('view engine', 'pug');
 app.set('views', path.join(__dirname, '/Views'));
 
@@ -13,7 +14,6 @@ const file = path.join(__dirname, '/scores.json');
 var scores = JSON.parse(fs.readFileSync(file, 'utf8')) || [];
 
 app.get('/', (req, res) => {
-    console.log(scores);
     res.render("index", { data: scores });
 });
 app.post('/', (req, res) => {
